@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Email Report</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+  body { background:#f0f2f8; min-height:100vh; color:#333; }
+
+  /* TOPBAR */
+  .topbar {
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white; padding:15px 30px;
+    display:flex; justify-content:space-between; align-items:center;
+    box-shadow:0 4px 15px rgba(0,0,0,0.15);
+    position:sticky; top:0; z-index:100;
+  }
+  .topbar h1 { font-size:1.3rem; display:flex; align-items:center; gap:10px; }
+  .user-info { display:flex; align-items:center; gap:15px; }
+  .avatar {
+    width:38px; height:38px; border-radius:50%;
+    background:white; color:#667eea;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:1rem;
+  }
+  .logout-btn {
+    background:rgba(255,255,255,0.2); color:white;
+    border:1px solid rgba(255,255,255,0.3); padding:8px 16px;
+    border-radius:8px; cursor:pointer; font-size:0.85rem;
+    transition:0.3s;
+  }
+  .logout-btn:hover { background:rgba(255,255,255,0.3); }
+
+  /* LAYOUT */
+  .main { display:grid; grid-template-columns:1fr 1fr; gap:25px; padding:30px; max-width:1400px; margin:0 auto; }
+  @media (max-width:900px) { .main { grid-template-columns:1fr; padding:20px; } }
+
+  .card {
+    background:white; border-radius:16px; padding:25px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+    border:1px solid #eef0f5;
+  }
+  .card-header {
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:20px; padding-bottom:15px; border-bottom:2px solid #f0f2f8;
+  }
+  .card-header .icon {
+    width:42px; height:42px; border-radius:11px;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white; display:flex; align-items:center; justify-content:center;
+    font-size:1.2rem; flex-shrink:0;
+  }
+  .card-header h2 { font-size:1.1rem; color:#333; }
+  .card-header p { font-size:0.78rem; color:#999; margin-top:2px; }
+
+  /* FORM */
+  label { display:block; font-size:0.85rem; color:#555; margin-bottom:6px; font-weight:500; }
+  input, textarea, select {
+    width:100%; padding:12px 14px;
+    border:1.5px solid #e2e5ee; border-radius:10px;
+    font-size:0.92rem; outline:none; transition:0.2s;
+    font-family:inherit; background:#fafbff;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color:#667eea; background:white;
+    box-shadow:0 0 0 3px rgba(102,126,234,0.12);
+  }
+  textarea { resize:vertical; min-height:130px; }
+  .form-group { margin-bottom:15px; }
+  .hint { font-size:0.75rem; color:#999; margin-top:5px; }
+
+  /* BUTTON */
+  .btn {
+    width:100%; padding:13px;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white; border:none; border-radius:10px;
+    font-size:0.95rem; font-weight:600; cursor:pointer;
+    transition:0.3s; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn:hover { transform:translateY(-2px); box-shadow:0 10px 25px rgba(102,126,234,0.35); }
+  .btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .btn-sm {
+    padding:6px 12px; font-size:0.78rem; width:auto;
+    border-radius:6px; background:#e74c3c; color:white;
+    border:none; cursor:pointer; font-weight:500;
+  }
+  .btn-sm:hover { background:#c0392b; }
+
+  /* SENDER LIST */
+  .sender-list { max-height:220px; overflow-y:auto; margin-top:12px; padding-right:5px; }
+  .sender-list::-webkit-scrollbar { width:6px; }
+  .sender-list::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
+
+  .sender-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 14px; background:#f8f9fe;
+    border-radius:10px; margin-bottom:8px;
+    border-left:3px solid #667eea; transition:0.2s;
+  }
+  .sender-item:hover { background:#f0f2ff; }
+  .sender-item .info { flex:1; overflow:hidden; }
+  .sender-item .email {
+    font-size:0.88rem; font-weight:600; color:#333;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .sender-item .status {
+    font-size:0.72rem; color:#4caf50; margin-top:3px;
+    display:flex; align-items:center; gap:5px;
+  }
+  .sender-item .status::before {
+    content:''; width:6px; height:6px; border-radius:50%; background:#4caf50;
+  }
+
+  .empty-state { text-align:center; padding:30px 15px; color:#aaa; font-size:0.85rem; }
+  .empty-state .big { font-size:2.5rem; margin-bottom:10px; opacity:0.4; }
+
+  /* ALERT */
+  .alert {
+    padding:12px 15px; border-radius:10px;
+    font-size:0.88rem; margin-bottom:15px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .alert-error { background:#fee; color:#c33; border-left:4px solid #e74c3c; }
+  .alert-success { background:#efe; color:#3a3; border-left:4px solid #4caf50; }
+  .alert-info { background:#eef2ff; color:#667eea; border-left:4px solid #667eea; }
+  .hidden { display:none; }
+
+  /* STATS */
+  .stats {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:15px; padding:20px 30px 0; max-width:1400px; margin:0 auto;
+  }
+  @media (max-width:900px) { .stats { padding:20px 20px 0; } }
+  .stat {
+    background:white; border-radius:14px; padding:20px;
+    display:flex; align-items:center; gap:15px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.05);
+    border:1px solid #eef0f5;
+  }
+  .stat-icon {
+    width:50px; height:50px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; color:white; flex-shrink:0;
+  }
+  .stat-icon.blue { background:linear-gradient(135deg,#667eea,#764ba2); }
+  .stat-icon.green { background:linear-gradient(135deg,#11998e,#38ef7d); }
+  .stat-icon.orange { background:linear-gradient(135deg,#f7971e,#ffd200); }
+  .stat-info h3 { font-size:1.5rem; color:#333; }
+  .stat-info p { font-size:0.78rem; color:#999; }
+
+  /* LOG */
+  .log-list { max-height:200px; overflow-y:auto; }
+  .log-item { padding:10px 12px; border-bottom:1px solid #f0f2f8; font-size:0.82rem; }
+  .log-item:last-child { border-bottom:none; }
+  .log-item .time { color:#999; font-size:0.72rem; }
+  .log-item .subj { color:#333; font-weight:600; margin:3px 0; }
+  .log-item .to { color:#667eea; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1>📧 Email Report System</h1>
+  <div class="user-info">
+    <span style="font-size:0.9rem;">Halo, <b id="userName">Surya</b></span>
+    <div class="avatar" id="avatarLetter">S</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-icon blue">📮</div>
+    <div class="stat-info">
+      <h3 id="statSender">0</h3>
+      <p>Total Sender</p>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon green">✅</div>
+    <div class="stat-info">
+      <h3 id="statSent">0</h3>
+      <p>Email Terkirim</p>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon orange">⚡</div>
+    <div class="stat-info">
+      <h3 id="statToday">0</h3>
+      <p>Hari Ini</p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- KIRI -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">➕</div>
+        <div>
+          <h2>Tambah Sender Gmail</h2>
+          <p>Format: email|appPassword16digit</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email | App Password</label>
+        <input type="text" id="senderInput" placeholder="contoh@gmail.com|abcdefghijklmnop">
+        <div class="hint">💡 App Password 16 digit dari Google Account → Security → App Passwords</div>
+      </div>
+
+      <button class="btn" onclick="addSender()">
+        <span>➕</span> Tambah Sender
+      </button>
+    </div>
+
+    <div class="card" style="margin-top:25px;">
+      <div class="card-header">
+        <div class="icon">📋</div>
+        <div>
+          <h2>Daftar Sender</h2>
+          <p>Tersimpan di browser Anda</p>
+        </div>
+      </div>
+      <div class="sender-list" id="senderList">
+        <div class="empty-state">
+          <div class="big">📭</div>
+          <div>Belum ada sender. Tambahkan di atas.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KANAN -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">✉️</div>
+        <div>
+          <h2>Kirim Report Email</h2>
+          <p>Isi form dan kirim</p>
+        </div>
+      </div>
+
+      <div id="sendStatus"></div>
+
+      <div class="form-group">
+        <label>Pilih Sender</label>
+        <select id="senderSelect">
+          <option value="">-- Belum ada sender --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Email Tujuan</label>
+        <input type="email" id="emailTo" placeholder="tujuan@gmail.com">
+      </div>
+
+      <div class="form-group">
+        <label>Subjek</label>
+        <input type="text" id="subject" placeholder="Contoh: Laporan Harian">
+      </div>
+
+      <div class="form-group">
+        <label>Isi Pesan</label>
+        <textarea id="message" placeholder="Tulis isi laporan di sini..."></textarea>
+        <div class="hint">💡 Bisa HTML, contoh: &lt;b&gt;bold&lt;/b&gt;, &lt;br&gt;, &lt;ul&gt;&lt;li&gt;...&lt;/li&gt;&lt;/ul&gt;</div>
+      </div>
+
+      <button class="btn" id="sendBtn" onclick="sendEmail()">
+        <span>🚀</span> Kirim Email
+      </button>
+    </div>
+
+    <div class="card" style="margin-top:25px;">
+      <div class="card-header">
+        <div class="icon">🕐</div>
+        <div>
+          <h2>Riwayat Kirim</h2>
+          <p>5 aktivitas terakhir</p>
+        </div>
+      </div>
+      <div class="log-list" id="logList">
+        <div class="empty-state">
+          <div class="big">📝</div>
+          <div>Belum ada riwayat</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============ AUTH GUARD ============ */
+if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+  alert('Silakan login terlebih dahulu!');
+  window.location.href = 'login.html';
+}
+
+const userName = sessionStorage.getItem('userName') || 'User';
+document.getElementById('userName').textContent = userName.charAt(0).toUpperCase() + userName.slice(1);
+document.getElementById('avatarLetter').textContent = userName.charAt(0).toUpperCase();
+
+/* ============ EMAILJS CONFIG ============
+   WAJIB DIISI! Daftar gratis di https://www.emailjs.com
+*/
+const EMAILJS_PUBLIC_KEY  = "ISI_PUBLIC_KEY_ANDA";
+const EMAILJS_SERVICE_ID  = "ISI_SERVICE_ID_ANDA";
+const EMAILJS_TEMPLATE_ID = "ISI_TEMPLATE_ID_ANDA";
+
+/* ============ STATE ============ */
+let senders = [];
+let logs = [];
+
+window.addEventListener('load', () => {
+  loadData();
+  renderSenders();
+  renderLogs();
+  updateStats();
+});
+
+function loadData() {
+  senders = JSON.parse(localStorage.getItem('emailSenders') || '[]');
+  logs    = JSON.parse(localStorage.getItem('emailLogs') || '[]');
+}
+function saveSenders() { localStorage.setItem('emailSenders', JSON.stringify(senders)); }
+function saveLogs()    { localStorage.setItem('emailLogs', JSON.stringify(logs)); }
+
+/* ============ SENDER ============ */
+function addSender() {
+  const input = document.getElementById('senderInput');
+  const raw = input.value.trim();
+  if (!raw) return showStatus('error', 'Isi dulu sender-nya!');
+
+  const parts = raw.split('|');
+  if (parts.length !== 2) return showStatus('error', 'Format salah! Gunakan: email|appPassword');
+
+  const email = parts[0].trim();
+  const appPassword = parts[1].trim();
+
+  if (!email.includes('@')) return showStatus('error', 'Email tidak valid!');
+  if (appPassword.length !== 16) return showStatus('error', 'App Password harus 16 digit!');
+  if (senders.find(s => s.email === email)) return showStatus('error', 'Sender sudah ada!');
+
+  senders.push({ email, appPassword, addedAt: Date.now() });
+  saveSenders();
+  renderSenders();
+  updateStats();
+  input.value = '';
+  showStatus('success', '✅ Sender berhasil ditambahkan!');
+}
+
+function removeSender(email) {
+  if (!confirm('Hapus sender ' + email + '?')) return;
+  senders = senders.filter(s => s.email !== email);
+  saveSenders();
+  renderSenders();
+  updateStats();
+  showStatus('info', '🗑️ Sender dihapus.');
+}
+
+function renderSenders() {
+  const list = document.getElementById('senderList');
+  const select = document.getElementById('senderSelect');
+
+  if (senders.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="big">📭</div><div>Belum ada sender. Tambahkan di atas.</div></div>';
+    select.innerHTML = '<option value="">-- Belum ada sender --</option>';
+    return;
+  }
+
+  list.innerHTML = senders.map(s => `
+    <div class="sender-item">
+      <div class="info">
+        <div class="email">📮 ${s.email}</div>
+        <div class="status">Aktif</div>
+      </div>
+      <button class="btn-sm" onclick="removeSender('${s.email}')">Hapus</button>
+    </div>
+  `).join('');
+
+  const current = select.value;
+  select.innerHTML = '<option value="">-- Pilih Sender --</option>' +
+    senders.map(s => `<option value="${s.email}" ${s.email === current ? 'selected' : ''}>${s.email}</option>`).join('');
+}
+
+/* ============ SEND EMAIL ============ */
+async function sendEmail() {
+  const btn = document.getElementById('sendBtn');
+  const fromEmail = document.getElementById('senderSelect').value;
+  const toEmail   = document.getElementById('emailTo').value.trim();
+  const subject   = document.getElementById('subject').value.trim();
+  const message   = document.getElementById('message').value.trim();
+
+  if (!fromEmail) return showStatus('error', 'Pilih sender dulu!');
+  if (!toEmail)   return showStatus('error', 'Email tujuan wajib diisi!');
+  if (!subject)   return showStatus('error', 'Subjek wajib diisi!');
+  if (!message)   return showStatus('error', 'Pesan wajib diisi!');
+
+  const sender = senders.find(s => s.email === fromEmail);
+  if (!sender) return showStatus('error', 'Sender tidak ditemukan!');
+
+  if (EMAILJS_PUBLIC_KEY.startsWith('ISI_')) {
+    return showStatus('error', '⚠️ Konfigurasi EmailJS belum diisi! Baca tutorial di bawah.');
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Mengirim...';
+
+  try {
+    await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      {
+        from_email: sender.email,
+        from_password: sender.appPassword,
+        to_email: toEmail,
+        subject: subject,
+        message: message,
+        reply_to: sender.email
+      },
+      { publicKey: EMAILJS_PUBLIC_KEY }
+    );
+
+    logs.unshift({ from: fromEmail, to: toEmail, subject, time: Date.now(), status: 'success' });
+    logs = logs.slice(0, 10);
+    saveLogs(); renderLogs(); updateStats();
+
+    showStatus('success', '✅ Email berhasil dikirim ke ' + toEmail);
+    document.getElementById('subject').value = '';
+    document.getElementById('message').value = '';
+
+  } catch (err) {
+    console.error(err);
+    showStatus('error', '❌ Gagal kirim: ' + (err.text || err.message || 'Cek console'));
+    logs.unshift({ from: fromEmail, to: toEmail, subject, time: Date.now(), status: 'failed' });
+    logs = logs.slice(0, 10);
+    saveLogs(); renderLogs();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>🚀</span> Kirim Email';
+  }
+}
+
+/* ============ LOGS & STATS ============ */
+function renderLogs() {
+  const list = document.getElementById('logList');
+  if (logs.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="big">📝</div><div>Belum ada riwayat</div></div>';
+    return;
+  }
+  list.innerHTML = logs.slice(0, 5).map(l => `
+    <div class="log-item">
+      <div class="time">${new Date(l.time).toLocaleString('id-ID')} ${l.status === 'success' ? '✅' : '❌'}</div>
+      <div class="subj">${escapeHtml(l.subject)}</div>
+      <div class="to">→ ${escapeHtml(l.to)}</div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('statSender').textContent = senders.length;
+  document.getElementById('statSent').textContent = logs.filter(l => l.status === 'success').length;
+  const today = new Date().toDateString();
+  document.getElementById('statToday').textContent = logs.filter(l =>
+    l.status === 'success' && new Date(l.time).toDateString() === today
+  ).length;
+}
+
+function showStatus(type, msg) {
+  const el = document.getElementById('sendStatus');
+  el.className = 'alert alert-' + type;
+  el.innerHTML = msg;
+  setTimeout(() => { el.className = 'hidden'; }, 5000);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function logout() {
+  if (!confirm('Yakin ingin logout?')) return;
+  sessionStorage.removeItem('isLoggedIn');
+  sessionStorage.removeItem('userName');
+  window.location.href = 'login.html';
+}
+</script>
+
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  if (!EMAILJS_PUBLIC_KEY.startsWith('ISI_')) {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+</script>
+
+</body>
+</html>
